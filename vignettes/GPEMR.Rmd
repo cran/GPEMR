@@ -1,0 +1,167 @@
+---
+title: "GPEMR"  
+output: 
+  rmarkdown: html_document  
+vignette: >
+  %\VignetteIndexEntry{GPEMR}  
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction to GPEMR Package
+
+## Overview
+
+The GPEMR (Growth Parameter Estimation Method) package is designed to facilitate the simulation, estimation, and visualization of growth parameters using various mathematical models. This vignette provides an overview of the three main functions in the GPEMR package: `simulated_function()`, `real_data()`, and `comparison_plot()`.
+
+## Installation
+
+You can install the GPEMR package from CRAN using the following command:
+
+```r
+install.packages("GPEMR")  # Install the GPEMR package from CRAN
+```
+
+Once installed, load the GPEMR package into your R session:
+
+```r
+library(GPEMR)  # Load the GPEMR package
+```
+
+## Functions Provided
+
+### `simulated_function()`
+
+This function simulates data for independent trajectories based on specified growth models and estimates the model parameters. It supports several models, including Logistic, Exponential, Theta-logistic, Von Bertalanffy, and Gompertz. The function also calculates global and local parameter estimates using the negative log-likelihood function.
+
+**Usage:**
+
+```r
+simulated_function(time_points, n, window_size, model, parameter, sigma2, rho, x_0, cov = FALSE, Plot_est = FALSE)
+```
+
+**Arguments:**
+
+- `time_points`: Numeric vector for time points.
+- `n`: Number of independent trajectories.
+- `window_size`: Window size for local estimation.
+- `model`: Growth model (e.g., 'Logistic', 'Exponential').
+- `parameter`: List of model-specific parameters.
+- `sigma2`: Variance of the process.
+- `rho`: Correlation coefficient.
+- `x_0`: Initial state.
+- `cov`: Logical value to print the covariance matrix.
+- `Plot_est`: Logical value to plot parameter estimates.
+
+**Details:**
+
+The available models are:
+
+- **Logistic**: Requires parameters `r` (growth rate) and `K` (carrying capacity).
+- **Exponential**: Requires parameter `r` (growth rate).
+- **Theta-logistic**: Requires parameters `r` (growth rate), `theta`, and `K` (carrying capacity).
+- **Von-bertalanffy**: Requires parameters `r` (growth rate) and `K` (asymptotic size).
+- **Gompertz**: Requires parameters `b` and `c`.
+
+The function first checks if the parameters are provided as a list. It then calculates the mean function based on the specified model and forms the covariance matrix. Multivariate normal data for the specified number of trajectories is generated using the `mvtnorm::rmvnorm` function. The negative log-likelihood function is defined and minimized using the `optim` function to estimate global parameters. Local parameter estimation is performed using a sliding window approach.
+
+**Examples:**
+
+```r
+# Simulate data and estimate parameters for a logistic growth model
+time_points <- 1:10              # Define time points
+n <- 10                          # Number of independent trajectories
+window_size <- 3                 # Window size for local estimation
+model <- 'Logistic'              # Growth model
+parameter <- list(r = 0.5, K = 100)  # Model-specific parameters
+sigma2 <- 2                      # Variance of the process
+rho <- 0.5                       # Correlation coefficient
+x_0 <- 10                        # Initial state
+res <- simulated_function(time_points, n, window_size, model, parameter, sigma2, rho, x_0, cov = TRUE, Plot_est = TRUE)     # Run the function and store results
+```
+
+### `real_data()`
+
+This function performs parameter estimation for specified models (Logistic, Von-Bertalanffy, or Gompertz) using real data from TXT or CSV files. It calculates global and local estimates of the model parameters, including their covariance matrices, and optionally generates plots of the estimates and p-values.
+
+**Usage:**
+
+```r
+real_data(data_path, window_size = 3, model, parameter, cov = FALSE, Plot_est = FALSE, p_value_plot = FALSE, tolerance = 0.05)
+```
+
+**Arguments:**
+
+- `data_path`: Path to the data file (TXT or CSV).
+- `window_size`: Size of the moving window for localized estimation.
+- `model`: Model to fit ("Logistic", "Von-Bertalanffy", "Gompertz").
+- `parameter`: Initial parameter estimates.
+- `cov`: Logical value to return covariance matrices.
+- `Plot_est`: Logical value to generate plots of the estimated parameters.
+- `p_value_plot`: Logical value to generate plots of p-values for local estimates.
+- `tolerance`: Alpha level for p-value calculation.
+
+**Data Requirements:**
+- Data should be cleaned and should be of numeric type.
+- Data should not have columns with time, names, or other non-numeric values.aq
+
+**Details:**
+
+The available models are:
+- **Logistic**: Requires parameters `r` (growth rate).
+- **Von-Bertalanffy**: Requires parameters `r` (growth rate).
+- **Gompertz**: Requires parameters `b` and `c`.
+
+**Examples:**
+
+```r
+# Define initial parameters
+parameter_logistic <- list(r = 0.1)           # Initial parameter for Logistic model
+parameter_gompertz <- list(c = 0.1, b = 0.1)  # Initial parameters for Gompertz model
+
+# Perform analysis with Logistic model and visualize estimates
+results_logistic <- real_data("data.txt", window_size = 5, model = "Logistic", parameter = parameter_logistic, cov = TRUE, Plot_est = TRUE, p_value_plot = TRUE)
+
+# Perform analysis with Gompertz model without covariance matrix and plotting
+results_gompertz <- real_data("data.csv", window_size = 5, model = "Gompertz", parameter = parameter_gompertz, cov = FALSE, Plot_est = FALSE, p_value_plot = FALSE)
+```
+
+### `comparison_plot()`
+
+This function generates a comparison plot of p-values obtained from different growth models (Logistic, Von-Bertalanffy, and Gompertz) using real data. It visualizes how p-values vary across time points for the specified models and provides a horizontal reference line for significance.
+
+**Usage:**
+
+```r
+comparison_plot(data_path, window_size = 3, parameter, p_val_method, repetition)
+```
+
+**Arguments:**
+
+- `data_path`: A character string specifying the path to the data file. The file should contain the necessary data for p-value calculations.
+- `window_size`: An integer specifying the size of the moving window for calculations. Default is 3.
+- `parameter`: A list of parameters used in p-value calculation.
+- `p_val_method`: A character string specifying the method for p-value calculation. The options are "Parametric" and "Non-Parametric".
+- `repetition`: An integer specifying the number of repetitions for calculations.
+
+**Data Requirements:**
+- Data should be cleaned and should be of numeric type.
+- Data should not have columns with time, names, or other non-numeric values.
+
+**Details:**
+
+This function reads the data from the specified file, calculates p-values for the Logistic, Von-Bertalanffy, and Gompertz models using the provided parameters and p-value calculation method, and generates a plot comparing these p-values over time. A reference line at p-value = 0.05 is included for significance.
+
+**Examples:**
+
+```r
+# Define parameters
+params <- list(log_r = 0.7, von_r = 0.2, b = 0.3, c = 0.1)  # Parameters for p-value calculations
+
+# Generate comparison plot for p-values using specified data and settings
+comparison_plot(data_path = "data.csv", window_size = 5, parameter = params, p_val_method = "Parametric", repetition = 10)
+```
+
+## Help
+
+For more details on each function, use the help file with `?{function name}`. For example: `?simulated_function`, `?real_data`, `?comparison_plot`.
